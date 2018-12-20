@@ -49,7 +49,7 @@ class MainActivity : AppCompatActivity() {
     lateinit var labelList: List<String>
 
     /** an array to hold the inference results, to be fed into tensorflow lite as outputs. */
-    //private lateinit var labelProbArray: Array<FloatArray>
+    private lateinit var labelProbArray: Array<FloatArray>
 
     /** A ByteBuffer to hold image data, to be feed into Tensorflow Lite as inputs.  */
     private lateinit var bitmapForImage: Bitmap
@@ -86,10 +86,6 @@ class MainActivity : AppCompatActivity() {
             calcModel(this@MainActivity)
         }
 
-        //fab.setOnClickListener { view ->
-        //    Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-        //            .setAction("Action", null).show()
-        //}
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -108,7 +104,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    fun openGallery(){
+    private fun openGallery(){
         myImageView = dog_picture!!
         myTextView = textView2!!
         val gallery = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.INTERNAL_CONTENT_URI )
@@ -126,7 +122,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    fun getPath(context: Context, uri: Uri): String {
+    private fun getPath(context: Context, uri: Uri): String {
         var result: String? = null
         val proj = arrayOf(MediaStore.Images.Media.DATA)
         val cursor = context.getContentResolver().query(uri, proj, null, null, null)
@@ -143,31 +139,33 @@ class MainActivity : AppCompatActivity() {
         return result
     }
 
-    fun calcModel(activity: Activity){
+    private fun calcModel(activity: Activity){
 
         tflite = Interpreter(loadModelFile(activity))
-
         labelList = loadLabelList(activity)
-        var labelProbArray = Array(1) { FloatArray(labelList.size) }
+        labelProbArray = Array(1) { FloatArray(labelList.size) }
         imgData =
                 ByteBuffer.allocateDirect(
                         4 * DIM_BATCH_SIZE * DIM_IMG_SIZE_X * DIM_IMG_SIZE_Y * DIM_PIXEL_SIZE)
         imgData.order(ByteOrder.nativeOrder())
-        val bitmap = dog_picture.drawable as BitmapDrawable
-        //possibly change width and height
-        val drawable: Drawable = dog_picture.drawable
-        val bounds: Rect = drawable.bounds
-        val width = bounds.width()
-        val height = bounds.height()
-        val bitmapWidth = drawable.intrinsicWidth //this is the bitmap's width
-        val bitmapHeight = drawable.intrinsicHeight //this is the bitmap's height
-        intValues = IntArray(width * height)
-        val newBitMap = bitmap.getBitmap()
-        convertBitmapToByteBuffer(newBitMap)
+        labelProbArray = Array(1) { FloatArray(labelList.size) }
 
+        val bitmap = dog_picture.drawable as Drawable
+        val newBitMap = (bitmap as BitmapDrawable).bitmap
+        val newNewBitmap = Bitmap.createScaledBitmap(newBitMap, 224, 224, false)
+
+        convertBitmapToByteBuffer(newNewBitmap)
+
+        val startTime = SystemClock.uptimeMillis()
         tflite.run(imgData, labelProbArray)
+        val endTime = SystemClock.uptimeMillis()
 
-        Log.d("OMG", labelProbArray.toString())
+        var textToShow: String = getTopKLabels()
+        textToShow = java.lang.Long.toString(endTime - startTime) + "ms" + textToShow
+        displayPrediction.setText(textToShow)
+        runModelCalc.visibility = View.GONE
+        displayPrediction.visibility = View.VISIBLE
+
         tflite.close()
     }
 
@@ -185,18 +183,9 @@ class MainActivity : AppCompatActivity() {
     /** Reads label list from Assets.  */
     @Throws(IOException::class)
     private fun loadLabelList(activity: Activity): List<String> {
-        //var labelList = ArrayList<String>()
         val reader = BufferedReader(InputStreamReader(activity.assets.open(LABEL_PATH)))
         var line: String
         var labelList = reader.readLines()
-        //reader.useLines {
-         //   it.map { line -> labelList.add(line) }
-        //    }
-        //while ((line = reader.readLine()) != null) {
-            //line = reader.readLine()
-          //  labelList.add(line)
-       // }
-       // reader.close()
         return labelList
     }
 
@@ -220,6 +209,50 @@ class MainActivity : AppCompatActivity() {
         }
         val endTime = SystemClock.uptimeMillis()
         Log.d("time", "Timecost to put values into ByteBuffer: " + java.lang.Long.toString(endTime - startTime))
+    }
+
+    private fun getTopKLabels(): String{
+        var first: Float
+        var second: Float
+        var third: Float
+        var fIndex: Int
+        var sIndex: Int
+        var tIndex: Int
+
+        third = java.lang.Float.MIN_VALUE
+        second = third
+        first = second
+        tIndex = Integer.MIN_VALUE
+        sIndex = tIndex
+        fIndex = sIndex
+        var textToShow = ""
+
+        for (i in labelList.indices) {
+
+            if (labelProbArray[0][i] > first) {
+                tIndex = sIndex
+                sIndex = fIndex
+                fIndex = i
+                third = second
+                second = first
+                first = labelProbArray[0][i]
+            } else if (labelProbArray[0][i] > second) {
+                tIndex = sIndex
+                sIndex = i
+                third = second
+                second = labelProbArray[0][i]
+            } else if (labelProbArray[0][i] > third)
+                tIndex = i/* If arr[i] is in between first and
+            second then update second  */
+            third = labelProbArray[0][i]
+        }
+
+
+        textToShow = String.format("\n%s: %4.2f", labelList[tIndex], third) + textToShow
+        textToShow = String.format("\n%s: %4.2f", labelList[sIndex], second) + textToShow
+        textToShow = String.format("\n%s: %4.2f", labelList[fIndex], first) + textToShow
+
+        return textToShow
     }
 
 }
