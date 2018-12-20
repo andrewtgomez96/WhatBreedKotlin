@@ -40,8 +40,8 @@ class MainActivity : AppCompatActivity() {
     lateinit var myImageView: ImageView
     lateinit var myTextView: TextView
 
-    private val MODEL_PATH = "graph.lite"//"output.tflite"
-    private val LABEL_PATH = "labels.txt"//"retrained_labels.txt"
+    private val MODEL_PATH = "dog_optimized_graph.tflite"//"output.tflite"
+    private val LABEL_PATH = "retrained_labels.txt"//"retrained_labels.txt"
     /** An instance of the driver class to run model inference with Tensorflow Lite.  */
     lateinit var tflite: Interpreter
 
@@ -107,6 +107,11 @@ class MainActivity : AppCompatActivity() {
     private fun openGallery(){
         myImageView = dog_picture!!
         myTextView = textView2!!
+        if(displayPrediction.visibility == View.VISIBLE){
+            runModelCalc.visibility = View.VISIBLE
+            displayPrediction.visibility = View.GONE
+            textView2.visibility = View.VISIBLE
+        }
         val gallery = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.INTERNAL_CONTENT_URI )
         startActivityForResult(gallery, PICK_IMAGE)
     }
@@ -165,6 +170,7 @@ class MainActivity : AppCompatActivity() {
         displayPrediction.setText(textToShow)
         runModelCalc.visibility = View.GONE
         displayPrediction.visibility = View.VISIBLE
+        textView2.visibility = View.GONE
 
         tflite.close()
     }
