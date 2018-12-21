@@ -37,7 +37,6 @@ import java.nio.channels.FileChannel
 
 class MainActivity : AppCompatActivity() {
 
-
     private var  histdb: BreedResultDatabase? = null
     private var resultDao: BreedResultDao? = null
     var newBreedResult=BreedResult()
@@ -198,6 +197,7 @@ class MainActivity : AppCompatActivity() {
         newBreedResult.bresult=textToShow
         newBreedResult.timeFound=currentThreadTimeMillis().toString()
         addResult(newBreedResult)
+
 
     }
 
