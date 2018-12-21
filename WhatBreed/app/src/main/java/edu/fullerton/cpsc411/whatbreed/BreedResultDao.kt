@@ -12,7 +12,7 @@ interface BreedResultDao{
     fun insert(BreedResult: BreedResult);
 
     @Query("SELECT * FROM breedResultTable")
-    fun getAllBreedResults(): LiveData<List<BreedResult>>
+    fun getAllBreedResults(): List<BreedResult>
 
 
 }
