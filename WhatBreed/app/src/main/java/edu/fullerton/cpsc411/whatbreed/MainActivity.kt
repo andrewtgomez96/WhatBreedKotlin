@@ -1,13 +1,12 @@
 package edu.fullerton.cpsc411.whatbreed
 
 import android.app.Activity
-import android.app.PendingIntent.getActivity
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
-import android.support.v7.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatActivity
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
@@ -17,28 +16,30 @@ import android.widget.TextView
 import kotlinx.android.synthetic.main.fragment_main.*
 import kotlinx.android.synthetic.main.activity_main.*
 import org.tensorflow.lite.Interpreter;
-import java.nio.channels.FileChannel.MapMode.READ_ONLY
 import android.content.res.AssetFileDescriptor
 import android.graphics.Bitmap
-import android.graphics.Rect
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.os.SystemClock
+import android.os.SystemClock.currentThreadTimeMillis
 import android.util.Log
 import java.io.*
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.MappedByteBuffer
 import java.nio.channels.FileChannel
-import java.util.ArrayList
 
 
 class MainActivity : AppCompatActivity() {
 
+    private var  histdb: BreedResultDatabase? = null
+    private var resultDao: BreedResultDao? = null
+    var newBreedResult=BreedResult()
     val PICK_IMAGE = 100
     lateinit var imageUri: Uri
     lateinit var myImageView: ImageView
     lateinit var myTextView: TextView
+
 
     private val MODEL_PATH = "dog_optimized_graph.tflite"//"output.tflite"
     private val LABEL_PATH = "retrained_labels.txt"//"retrained_labels.txt"
@@ -78,6 +79,9 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         setSupportActionBar(toolbar)
 
+        histdb= BreedResultDatabase.getInstance(context=this)
+        resultDao=histdb?.BreedResultDao()
+
         fab.setOnClickListener { view ->
             openGallery()
         }
@@ -114,6 +118,7 @@ class MainActivity : AppCompatActivity() {
         }
         val gallery = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.INTERNAL_CONTENT_URI )
         startActivityForResult(gallery, PICK_IMAGE)
+
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -124,6 +129,9 @@ class MainActivity : AppCompatActivity() {
             bitmapForImage = MediaStore.Images.Media.getBitmap(this.getContentResolver(), imageUri)
             textView2.text = picturePath
             myImageView.setImageURI(imageUri)
+
+            //add picture path to new db item
+            newBreedResult.picPath=picturePath
         }
     }
 
@@ -161,10 +169,10 @@ class MainActivity : AppCompatActivity() {
 
         convertBitmapToByteBuffer(newNewBitmap)
 
+
         val startTime = SystemClock.uptimeMillis()
         tflite.run(imgData, labelProbArray)
         val endTime = SystemClock.uptimeMillis()
-
         var textToShow: String = getTopKLabels()
         textToShow = java.lang.Long.toString(endTime - startTime) + "ms" + textToShow
         displayPrediction.setText(textToShow)
@@ -173,6 +181,11 @@ class MainActivity : AppCompatActivity() {
         textView2.visibility = View.GONE
 
         tflite.close()
+        //save info to new BreedResult for db
+        newBreedResult.bresult=textToShow
+        newBreedResult.timeFound=currentThreadTimeMillis().toString()
+        resultDao?.insert(newBreedResult)
+
     }
 
     /** Memory-map the model file in Assets.  */

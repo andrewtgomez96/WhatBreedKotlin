@@ -3,7 +3,7 @@ package edu.fullerton.cpsc411.whatbreed
 import android.app.Activity
 import android.content.Intent
 import android.net.Uri
-import android.support.v4.app.Fragment
+import androidx.fragment.app.Fragment
 import android.os.Bundle
 import android.provider.MediaStore
 import android.view.LayoutInflater
@@ -16,7 +16,7 @@ import kotlinx.android.synthetic.main.fragment_main.view.*
 /**
  * A placeholder fragment containing a simple view.
  */
-class MainActivityFragment : Fragment() {
+class MainActivityFragment : androidx.fragment.app.Fragment() {
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
                               savedInstanceState: Bundle?): View? {
