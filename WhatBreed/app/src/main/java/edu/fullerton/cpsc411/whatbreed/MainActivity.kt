@@ -1,5 +1,7 @@
 package edu.fullerton.cpsc411.whatbreed
 
+
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
@@ -23,11 +25,14 @@ import android.graphics.drawable.Drawable
 import android.os.SystemClock
 import android.os.SystemClock.currentThreadTimeMillis
 import android.util.Log
+import android.widget.Button
+import io.reactivex.Single
 import java.io.*
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.MappedByteBuffer
 import java.nio.channels.FileChannel
+
 
 
 class MainActivity : AppCompatActivity() {
@@ -85,6 +90,9 @@ class MainActivity : AppCompatActivity() {
         fab.setOnClickListener { view ->
             openGallery()
         }
+        histbutton.setOnClickListener { view ->
+            openHistory()
+        }
 
         runModelCalc.setOnClickListener {view ->
             calcModel(this@MainActivity)
@@ -121,6 +129,10 @@ class MainActivity : AppCompatActivity() {
 
     }
 
+    private fun openHistory(){
+        val intent=Intent(this, ResultsHistoryActivity::class.java)
+        startActivity(intent)
+    }
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if(resultCode == Activity.RESULT_OK && requestCode == PICK_IMAGE){
@@ -184,7 +196,8 @@ class MainActivity : AppCompatActivity() {
         //save info to new BreedResult for db
         newBreedResult.bresult=textToShow
         newBreedResult.timeFound=currentThreadTimeMillis().toString()
-        resultDao?.insert(newBreedResult)
+        addResult(newBreedResult)
+
 
     }
 
@@ -273,5 +286,12 @@ class MainActivity : AppCompatActivity() {
 
         return textToShow
     }
+     @SuppressLint("CheckResult")
+     fun addResult(newestBreedResult: BreedResult){
+         Single.fromCallable{
+             resultDao?.insert(newestBreedResult)
+         }
+     }
+
 
 }
